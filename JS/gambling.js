@@ -100,7 +100,7 @@ function initSnakeEyes() {
                 resultDiv.innerHTML = `
                     <p>${data.message}</p>
                     <p>Dice Rolls: ${data.dice_rolls.join(', ')}</p>
-                    <p>Your Balance: ${data.balance} euros</p>
+                    <p>Your Balance: ${data.balance}€</p>
                 `;
 
                 // Update balance on the page
@@ -184,7 +184,7 @@ function initHiLo() {
             } else {
                 resultDiv.innerHTML = `
                     <p>${data.message}</p>
-                    <p>Your Balance: ${data.balance} euros</p>
+                    <p>Your Balance: ${data.balance}€</p>
                 `;
                 firstCardDiv.style.display = 'none';
                 guessDiv.style.display = 'none';
@@ -285,11 +285,11 @@ function initHorseRace() {
             } else {
                 resultDiv.innerHTML = `
                     <p>${data.message}</p>
-                    <p>Your Balance: ${data.player_balance} euros</p>
+                    <p>Your Balance: ${data.player_balance}€</p>
                     <h4>Race Results:</h4>
                     <ul>
                         ${Object.entries(data.race_results)
-                            .map(([horse, speed]) => `<li>${horse}: ${speed} speed</li>`)
+                            .map(([horse, speed]) => `<li>${horse}: ${speed} km/h</li>`)
                             .join('')}
                     </ul>
                 `;
@@ -370,7 +370,7 @@ function initBlackjack() {
                     balanceSpan.textContent = data.balance; // Update balance
                 }
                 if (data.amount !== undefined && data.finished) {
-                    blackjackResult.innerHTML += `<p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)} euros.</p>`;
+                    blackjackResult.innerHTML += `<p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)}€.</p>`;
                 }
                 if (data.finished) blackjackActions.style.display = 'none';
             }
@@ -394,7 +394,7 @@ function initBlackjack() {
                     <p>Your hand: ${data.player_hand.join(', ')}</p>
                     <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
                     <p>${data.result}</p>
-                    <p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)} euros.</p>
+                    <p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)}€.</p>
                 `;
                 if (data.balance !== undefined) {
                     balanceSpan.textContent = data.balance; // Update balance
@@ -430,3 +430,4 @@ document.querySelector('button[onclick*="blackjack"]').onclick = () => {
     showGame('blackjack');
     initBlackjack();
 };
+

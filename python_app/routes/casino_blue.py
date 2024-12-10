@@ -95,10 +95,10 @@ def horse_race():
         winnings = 0
         if bet_horse.capitalize() == winner:
             winnings = bet * odds[bet_horse.capitalize()]
-            result_message += f" Congratulations! You won {winnings:.2f} euros."
+            result_message += f" Congratulations! You won {winnings:.2f}€."
             player.update_balance(winnings)
         else:
-            result_message += f" You lost {bet:.2f} euros."
+            result_message += f" You lost {bet:.2f}€."
             player.update_balance(-bet)
 
         # Return the race results and player's updated balance
@@ -263,13 +263,13 @@ def snake_eyes():
         # Determine the outcome
         if dice_1 == dice_2 == 1:  # Snake Eyes
             winnings = bet * 10
-            result_message += f" Snake Eyes! You won {winnings:.2f} euros."
+            result_message += f" Snake Eyes! You won {winnings:.2f}€."
         elif dice_1 == dice_2:  # Any other doubles
             winnings = bet
-            result_message += f" Doubles! You won {winnings:.2f} euros."
+            result_message += f" Doubles! You won {winnings:.2f}€."
         else:  # No win
             winnings = -bet
-            result_message += f" No doubles. You lost {bet:.2f} euros."
+            result_message += f" No doubles. You lost {bet:.2f}€."
 
         # Update the player's balance
         player.update_balance(winnings)
@@ -335,12 +335,12 @@ def hilo_guess():
 
         if (guess == "HI" and second_card > first_card) or (guess == "LO" and second_card < first_card):
             winnings = bet
-            result_message += f" You guessed correctly! You won {winnings:.2f} euros."
+            result_message += f" You guessed correctly! You won {winnings:.2f}€."
         elif second_card == first_card:
             result_message += " It's a tie! No winnings or losses."
         else:
             winnings = -bet
-            result_message += f" You guessed wrong. You lost {bet:.2f} euros."
+            result_message += f" You guessed wrong. You lost {bet:.2f}€."
 
         player.update_balance(winnings)
 
