@@ -149,15 +149,17 @@ function initHiLo() {
             if (data.error) {
                 resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
             } else {
+                // Show the first card and enable guessing
                 firstCardDiv.style.display = 'block';
-                firstCardDiv.innerHTML = `<p>${data.message}</p>`;
+                firstCardDiv.innerHTML = `<p>The first card is ${data.first_card}. Make your guess!</p>`;
                 guessDiv.style.display = 'block';
                 resultDiv.innerHTML = '';
+                window.hiloState = { first_card: data.first_card, bet: betAmount }; // Store game state
             }
         })
         .catch(error => {
             console.error('Error starting Hi-Lo:', error);
-            alert('An error occurred while starting the game.');
+            resultDiv.innerHTML = '<p>An error occurred while starting the game.</p>';
         });
     };
 
@@ -165,10 +167,15 @@ function initHiLo() {
     document.getElementById('hilo-lo').onclick = () => makeHiLoGuess('LO');
 
     function makeHiLoGuess(guess) {
+        if (!window.hiloState || !window.hiloState.first_card) {
+            alert('No active game. Start a new game first.');
+            return;
+        }
+
         fetch('http://localhost:4000/casino/hilo/guess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guess: guess })
+            body: JSON.stringify({ ...window.hiloState, guess: guess })
         })
         .then(response => response.json())
         .then(data => {
@@ -181,12 +188,13 @@ function initHiLo() {
                 `;
                 firstCardDiv.style.display = 'none';
                 guessDiv.style.display = 'none';
-                balanceSpan.textContent = data.balance;
+                balanceSpan.textContent = data.balance; // Update the balance
+                window.hiloState = {}; // Clear game state
             }
         })
         .catch(error => {
             console.error('Error making Hi-Lo guess:', error);
-            alert('An error occurred while making your guess.');
+            resultDiv.innerHTML = '<p>An error occurred while making your guess.</p>';
         });
     }
 }
@@ -195,19 +203,26 @@ function initHiLo() {
 // Initialize Horse Race logic
 function initHorseRace() {
     document.getElementById('horse-race-container').innerHTML = `
-        <select id="horse-select">
-            <option value="Diddy">Diddy</option>
-            <option value="Kolovastaava">Kolovastaava</option>
-            <option value="Sakke">Sakke</option>
-            <option value="Rinne">Rinne</option>
-            <option value="Uusitalo">Uusitalo</option>
-        </select>
-        <button id="horse-race-play">Start Race</button>
+        <button id="horse-race-start">Start Horse Race</button>
+        <div id="horse-race-odds" style="display: none;">
+            <h4>Odds:</h4>
+            <ul id="horse-odds-list"></ul>
+        </div>
+        <div id="horse-selection" style="display: none;">
+            <label for="horse-select">Choose a Horse:</label>
+            <select id="horse-select"></select>
+            <button id="place-bet">Place Bet</button>
+        </div>
         <div id="horse-race-result"></div>
     `;
 
-    document.getElementById('horse-race-play').onclick = () => {
-        const selectedHorse = document.getElementById('horse-select').value;
+    const oddsDiv = document.getElementById('horse-race-odds');
+    const oddsList = document.getElementById('horse-odds-list');
+    const horseSelection = document.getElementById('horse-selection');
+    const horseSelect = document.getElementById('horse-select');
+    const resultDiv = document.getElementById('horse-race-result');
+
+    document.getElementById('horse-race-start').onclick = () => {
         const betAmount = parseFloat(document.getElementById('bet').value);
 
         if (isNaN(betAmount) || betAmount <= 0) {
@@ -215,43 +230,83 @@ function initHorseRace() {
             return;
         }
 
-        fetch('http://localhost:4000/casino/horse_race', {
+        fetch('http://localhost:4000/casino/horse_race/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ horse: selectedHorse, bet: betAmount })
+            body: JSON.stringify({ bet: betAmount })
         })
         .then(response => response.json())
         .then(data => {
-            const horseRaceResultDiv = document.getElementById('horse-race-result');
-            const balanceSpan = document.getElementById('balance'); // Ensure this ID exists
-
             if (data.error) {
-                horseRaceResultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+                resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
             } else {
-                let raceDetails = '<h4>Race Results:</h4>';
-                for (const [horse, speed] of Object.entries(data.race_results)) {
-                    raceDetails += `<p>${horse}: ${speed} speed</p>`;
+                oddsDiv.style.display = 'block';
+                horseSelection.style.display = 'block';
+                resultDiv.innerHTML = '';
+
+                // Display odds
+                oddsList.innerHTML = '';
+                horseSelect.innerHTML = '';
+                for (const horse of data.horses) {
+                    oddsList.innerHTML += `<li>${horse}: ${data.odds[horse]}x</li>`;
+                    horseSelect.innerHTML += `<option value="${horse}">${horse}</option>`;
                 }
 
-                horseRaceResultDiv.innerHTML = `
-                    <p>${data.message}</p>
-                    ${raceDetails}
-                    <p>Your Balance: ${data.player_balance} euros</p>
-                `;
+                // Store state for later use
+                window.horseRaceState = { odds: data.odds, bet: betAmount };
+            }
+        })
+        .catch(error => {
+            console.error('Error starting Horse Race:', error);
+            resultDiv.innerHTML = '<p>An error occurred while starting the race.</p>';
+        });
+    };
 
-                // Update balance on the page
-                balanceSpan.textContent = data.player_balance;
+    document.getElementById('place-bet').onclick = () => {
+        const selectedHorse = horseSelect.value;
+
+        if (!selectedHorse) {
+            alert('Please select a horse.');
+            return;
+        }
+
+        fetch('http://localhost:4000/casino/horse_race', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                horse: selectedHorse,
+                bet: window.horseRaceState.bet
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            } else {
+                resultDiv.innerHTML = `
+                    <p>${data.message}</p>
+                    <p>Your Balance: ${data.player_balance} euros</p>
+                    <h4>Race Results:</h4>
+                    <ul>
+                        ${Object.entries(data.race_results)
+                            .map(([horse, speed]) => `<li>${horse}: ${speed} speed</li>`)
+                            .join('')}
+                    </ul>
+                `;
+                document.getElementById('balance').textContent = data.player_balance; // Update balance
             }
         })
         .catch(error => {
             console.error('Error in Horse Race:', error);
-            alert('An error occurred while starting the race.');
+            resultDiv.innerHTML = '<p>An error occurred while placing your bet.</p>';
         });
     };
 }
 
 // Initialize Blackjack logic
 function initBlackjack() {
+    let blackjackState = {}; // Store game state locally
+
     document.getElementById('blackjack-container').innerHTML = `
         <button id="blackjack-start">Start Blackjack</button>
         <div id="blackjack-result"></div>
@@ -263,6 +318,7 @@ function initBlackjack() {
 
     const blackjackResult = document.getElementById('blackjack-result');
     const blackjackActions = document.getElementById('blackjack-actions');
+    const balanceSpan = document.getElementById('balance'); // Ensure this ID exists
 
     document.getElementById('blackjack-start').onclick = () => {
         const betAmount = parseFloat(document.getElementById('bet').value);
@@ -282,53 +338,69 @@ function initBlackjack() {
             if (data.error) {
                 alert(data.error);
             } else {
+                blackjackState = { ...data }; // Store initial state
                 blackjackResult.innerHTML = `
                     <p>Your hand: ${data.player_hand.join(', ')}</p>
                     <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
                 `;
                 blackjackActions.style.display = 'block';
-                blackjackActions.dataset.gameId = data.game_id;
             }
         })
         .catch(error => console.error('Error starting Blackjack:', error));
     };
 
     document.getElementById('blackjack-hit').onclick = () => {
-        const gameId = blackjackActions.dataset.gameId;
-
         fetch('http://localhost:4000/casino/blackjack/play', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game_id: gameId, action: 'hit' })
+            body: JSON.stringify({ ...blackjackState, action: 'hit' })
         })
         .then(response => response.json())
         .then(data => {
-            blackjackResult.innerHTML = `
-                <p>Your hand: ${data.player_hand.join(', ')}</p>
-                <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
-                <p>${data.result || data.message}</p>
-            `;
-            if (data.finished) blackjackActions.style.display = 'none';
+            if (data.error) {
+                alert(data.error);
+            } else {
+                blackjackState = { ...blackjackState, ...data }; // Update state
+                blackjackResult.innerHTML = `
+                    <p>Your hand: ${data.player_hand.join(', ')}</p>
+                    <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
+                    <p>${data.result || data.message}</p>
+                `;
+                if (data.balance !== undefined) {
+                    balanceSpan.textContent = data.balance; // Update balance
+                }
+                if (data.amount !== undefined && data.finished) {
+                    blackjackResult.innerHTML += `<p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)} euros.</p>`;
+                }
+                if (data.finished) blackjackActions.style.display = 'none';
+            }
         })
         .catch(error => console.error('Error hitting in Blackjack:', error));
     };
 
     document.getElementById('blackjack-stand').onclick = () => {
-        const gameId = blackjackActions.dataset.gameId;
-
         fetch('http://localhost:4000/casino/blackjack/play', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game_id: gameId, action: 'stand' })
+            body: JSON.stringify({ ...blackjackState, action: 'stand' })
         })
         .then(response => response.json())
         .then(data => {
-            blackjackResult.innerHTML = `
-                <p>Your hand: ${data.player_hand.join(', ')}</p>
-                <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
-                <p>${data.result}</p>
-            `;
-            blackjackActions.style.display = 'none';
+            if (data.error) {
+                alert(data.error);
+            } else {
+                blackjackState = { ...blackjackState, ...data }; // Update state
+                blackjackResult.innerHTML = `
+                    <p>Your hand: ${data.player_hand.join(', ')}</p>
+                    <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
+                    <p>${data.result}</p>
+                    <p>You ${data.amount > 0 ? 'won' : 'lost'} ${Math.abs(data.amount)} euros.</p>
+                `;
+                if (data.balance !== undefined) {
+                    balanceSpan.textContent = data.balance; // Update balance
+                }
+                blackjackActions.style.display = 'none';
+            }
         })
         .catch(error => console.error('Error standing in Blackjack:', error));
     };
