@@ -78,26 +78,119 @@ function initSnakeEyes() {
     `;
 
     document.getElementById('snake-eyes-play').onclick = () => {
-        placeBet('snake-eyes');
+        const betAmount = parseFloat(document.getElementById('bet').value);
+        const resultDiv = document.getElementById('snake-eyes-result');
+        const balanceSpan = document.getElementById('balance'); // Ensure this ID exists
+
+        if (isNaN(betAmount) || betAmount <= 0) {
+            alert('Please enter a valid bet amount.');
+            return;
+        }
+
+        fetch('http://localhost:4000/casino/snake-eyes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bet: betAmount })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            } else {
+                resultDiv.innerHTML = `
+                    <p>${data.message}</p>
+                    <p>Dice Rolls: ${data.dice_rolls.join(', ')}</p>
+                    <p>Your Balance: ${data.balance} euros</p>
+                `;
+
+                // Update balance on the page
+                balanceSpan.textContent = data.balance;
+            }
+        })
+        .catch(error => {
+            console.error('Error in Snake Eyes:', error);
+            alert('An error occurred while playing Snake Eyes.');
+        });
     };
 }
 
 // Initialize Hi-Lo logic
 function initHiLo() {
     document.getElementById('hilo-container').innerHTML = `
-        <button id="hilo-hi">Guess Hi</button>
-        <button id="hilo-lo">Guess Lo</button>
+        <button id="hilo-start">Start Game</button>
+        <div id="hilo-first-card" style="display: none;"></div>
+        <div id="hilo-guess" style="display: none;">
+            <button id="hilo-hi">Guess Hi</button>
+            <button id="hilo-lo">Guess Lo</button>
+        </div>
         <div id="hilo-result"></div>
     `;
 
-    document.getElementById('hilo-hi').onclick = () => {
-        placeBet('hilo', { guess: 'HI' });
+    const firstCardDiv = document.getElementById('hilo-first-card');
+    const guessDiv = document.getElementById('hilo-guess');
+    const resultDiv = document.getElementById('hilo-result');
+    const balanceSpan = document.getElementById('balance'); // Ensure this ID exists
+
+    document.getElementById('hilo-start').onclick = () => {
+        const betAmount = parseFloat(document.getElementById('bet').value);
+
+        if (isNaN(betAmount) || betAmount <= 0) {
+            alert('Please enter a valid bet amount.');
+            return;
+        }
+
+        fetch('http://localhost:4000/casino/hilo/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bet: betAmount })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            } else {
+                firstCardDiv.style.display = 'block';
+                firstCardDiv.innerHTML = `<p>${data.message}</p>`;
+                guessDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error starting Hi-Lo:', error);
+            alert('An error occurred while starting the game.');
+        });
     };
 
-    document.getElementById('hilo-lo').onclick = () => {
-        placeBet('hilo', { guess: 'LO' });
-    };
+    document.getElementById('hilo-hi').onclick = () => makeHiLoGuess('HI');
+    document.getElementById('hilo-lo').onclick = () => makeHiLoGuess('LO');
+
+    function makeHiLoGuess(guess) {
+        fetch('http://localhost:4000/casino/hilo/guess', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guess: guess })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            } else {
+                resultDiv.innerHTML = `
+                    <p>${data.message}</p>
+                    <p>Your Balance: ${data.balance} euros</p>
+                `;
+                firstCardDiv.style.display = 'none';
+                guessDiv.style.display = 'none';
+                balanceSpan.textContent = data.balance;
+            }
+        })
+        .catch(error => {
+            console.error('Error making Hi-Lo guess:', error);
+            alert('An error occurred while making your guess.');
+        });
+    }
 }
+
 
 // Initialize Horse Race logic
 function initHorseRace() {
@@ -115,7 +208,45 @@ function initHorseRace() {
 
     document.getElementById('horse-race-play').onclick = () => {
         const selectedHorse = document.getElementById('horse-select').value;
-        placeBet('horse_race', { horse: selectedHorse });
+        const betAmount = parseFloat(document.getElementById('bet').value);
+
+        if (isNaN(betAmount) || betAmount <= 0) {
+            alert('Please enter a valid bet amount.');
+            return;
+        }
+
+        fetch('http://localhost:4000/casino/horse_race', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ horse: selectedHorse, bet: betAmount })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const horseRaceResultDiv = document.getElementById('horse-race-result');
+            const balanceSpan = document.getElementById('balance'); // Ensure this ID exists
+
+            if (data.error) {
+                horseRaceResultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            } else {
+                let raceDetails = '<h4>Race Results:</h4>';
+                for (const [horse, speed] of Object.entries(data.race_results)) {
+                    raceDetails += `<p>${horse}: ${speed} speed</p>`;
+                }
+
+                horseRaceResultDiv.innerHTML = `
+                    <p>${data.message}</p>
+                    ${raceDetails}
+                    <p>Your Balance: ${data.player_balance} euros</p>
+                `;
+
+                // Update balance on the page
+                balanceSpan.textContent = data.player_balance;
+            }
+        })
+        .catch(error => {
+            console.error('Error in Horse Race:', error);
+            alert('An error occurred while starting the race.');
+        });
     };
 }
 
@@ -151,7 +282,6 @@ function initBlackjack() {
             if (data.error) {
                 alert(data.error);
             } else {
-                console.log("Start Response:", data);  // Debug response
                 blackjackResult.innerHTML = `
                     <p>Your hand: ${data.player_hand.join(', ')}</p>
                     <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
@@ -165,7 +295,6 @@ function initBlackjack() {
 
     document.getElementById('blackjack-hit').onclick = () => {
         const gameId = blackjackActions.dataset.gameId;
-        console.log("Game ID:", blackjackActions.dataset.gameId); // Add this to the Hit and Stand button click handlers
 
         fetch('http://localhost:4000/casino/blackjack/play', {
             method: 'POST',
@@ -174,7 +303,6 @@ function initBlackjack() {
         })
         .then(response => response.json())
         .then(data => {
-            console.log("Hit Response:", data);  // Debug response
             blackjackResult.innerHTML = `
                 <p>Your hand: ${data.player_hand.join(', ')}</p>
                 <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
@@ -187,7 +315,6 @@ function initBlackjack() {
 
     document.getElementById('blackjack-stand').onclick = () => {
         const gameId = blackjackActions.dataset.gameId;
-        console.log("Game ID:", blackjackActions.dataset.gameId); // Add this to the Hit and Stand button click handlers
 
         fetch('http://localhost:4000/casino/blackjack/play', {
             method: 'POST',
@@ -196,7 +323,6 @@ function initBlackjack() {
         })
         .then(response => response.json())
         .then(data => {
-            console.log("Stand Response:", data);  // Debug response
             blackjackResult.innerHTML = `
                 <p>Your hand: ${data.player_hand.join(', ')}</p>
                 <p>Dealer's hand: ${data.dealer_hand.join(', ')}</p>
